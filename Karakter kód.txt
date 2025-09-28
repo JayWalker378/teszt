@@ -1,0 +1,53 @@
+extends CharacterBody2D
+
+@onready var anim = $AnimatedSprite2D
+
+var speed = 200
+var gravity = 800
+var jump_velocity = -400
+var shoot_speed_scale = 0.5  # lassított shoot animáció
+
+func _physics_process(delta):
+	var input_vector = Vector2.ZERO
+	input_vector.x = Input.get_action_strength("ui_right") - Input.get_action_strength("ui_left")
+
+	# gravitáció
+	if not is_on_floor():
+		velocity.y += gravity * delta
+
+	# ugrás
+	if is_on_floor() and Input.is_action_just_pressed("ui_accept"):
+		velocity.y = jump_velocity
+
+	# vízszintes mozgás
+	velocity.x = input_vector.x * speed
+	move_and_slide()
+
+	# --- Lövés animáció ---
+	if Input.is_action_just_pressed("shoot"):
+		anim.speed_scale = shoot_speed_scale
+		anim.play("shoot")
+		return  # ne írja felül az animációt
+
+	# --- Alap animációk ---
+	anim.speed_scale = 1.0  # minden más normál sebességgel
+	if not is_on_floor():
+		if velocity.y < 0:
+			anim.play("jump")
+		else:
+			anim.play("fall")
+	else:
+		if input_vector.x == 0:
+			anim.play("idle")
+		else:
+			anim.play("run")
+
+	# sprite flip
+	if input_vector.x != 0:
+		anim.flip_h = input_vector.x < 0
+
+# signal: animáció vége
+func _on_AnimatedSprite2D_animation_finished():
+	if anim.animation == "shoot":
+		anim.speed_scale = 1.0
+		anim.play("idle")
